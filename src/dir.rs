@@ -196,6 +196,27 @@ impl<'a, IO: ReadWriteSeek, TP: TimeProvider, OCC: OemCpConverter> Dir<'a, IO, T
         }
     }
 
+    /// Opens existing file or subdirectory.
+    ///
+    /// `path` is a '/' separated directory path relative to self directory.
+    ///
+    /// # Errors
+    ///
+    /// Errors that can be returned:
+    ///
+    /// * `Error::NotFound` will be returned if `path` does not point to any existing directory entry.
+    /// * `Error::InvalidInput` will be returned if `path` points to a file that is not a directory.
+    /// * `Error::Io` will be returned if the underlying storage object returned an I/O error.
+    pub fn find(&self, path: &str) -> Result<DirEntry<'a, IO, TP, OCC>, Error<IO::Error>> {
+        trace!("Dir::find {}", path);
+        let (name, rest_opt) = split_path(path);
+        let e = self.find_entry(name, None, None)?;
+        match rest_opt {
+            Some(rest) => e.to_dir().find(rest),
+            None => Ok(e),
+        }
+    }
+
     /// Opens existing subdirectory.
     ///
     /// `path` is a '/' separated directory path relative to self directory.
